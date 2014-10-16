@@ -1,0 +1,9 @@
+name = Commerce Pesapal
+description = Provides Pesapal integration for Drupal Commerce.
+
+dependencies[] = commerce
+dependencies[] = commerce_payment
+
+package = Commerce (contrib)
+files[] = OAuth.php
+core = 7.x

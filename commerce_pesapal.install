@@ -1,0 +1,20 @@
+<?php
+/**
+  * Implement hook_schema()
+  */
+function commerce_pesapal_schema() {
+  $schema['pesapal_tracking_id'] = array(
+    'description' => 'This table stores tracking id from pesapal',
+    'fields' => array(
+      'tracking_id' => array(
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 255,
+        'description' => 'the tracking id as received from pesapal'
+      ),
+    ),
+    'primary key' => array('tracking_id'),
+  );
+
+  return $schema;
+}
