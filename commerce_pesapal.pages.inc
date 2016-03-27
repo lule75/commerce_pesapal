@@ -10,20 +10,22 @@ function commerce_pesapal_pay() {
   $consumer_secret = $settings['settings']['consumer_secret'];
   $transaction_mode = $settings['settings']['mode'];
 
-  dpm($settings);
-
   $token = $params = NULL;
 
   if ($transaction_mode = 'test') {
+
     $iframelink = 'http://demo.pesapal.com/api/PostPesapalDirectOrderV4';
+  
   } 
   elseif ($transaction_mode = 'live') {
+
     $iframelink = 'https://www.pesapal.com/api/PostPesapalDirectOrderV4';
+  
   }
     
   $callback_url = $base_url . '/?q=pesapal/complete';
 
-  //Get data from the POST to pass that to the iframe.
+  //Get data from the POST payload and pass that to the iframe.
   $amount = $_POST['amount'];
   $description = 'Product';//Yet to work how best to get this.
   $order_id = $_POST['order_id'];
@@ -35,7 +37,7 @@ function commerce_pesapal_pay() {
   $phonenumber = '';//This parameter is optional.
 
   //Create XML to be passed to the iframe
-  $post_xml = '<?xml version="1.0" encoding="utf-8"?>';
+  $post_xml  = '<?xml version="1.0" encoding="utf-8"?>';
   $post_xml .= '<PesapalDirectOrderInfo ';
   $post_xml .= 'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ';
   $post_xml .= 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" ';
@@ -49,18 +51,20 @@ function commerce_pesapal_pay() {
   $post_xml .= 'PhoneNumber="' . $phonenumber . '" ';
   $post_xml .= 'Currency="' . $currency . '" ';
   $post_xml .= 'xmlns="http://www.pesapal.com" />';
-  $post_xml = htmlentities($post_xml);
+  
+  $post_xml =   htmlentities($post_xml);
 
   $consumer = new OAuthConsumer($consumer_key, $consumer_secret);
 
   // Construct the OAuth Request URL & post transaction to pesapal
   $signature_method = new OAuthSignatureMethod_HMAC_SHA1();
+
   $iframe_src = OAuthRequest::from_consumer_and_token($consumer, $token, 'GET', $iframelink, $params);
   $iframe_src -> set_parameter('oauth_callback', $callback_url);
   $iframe_src -> set_parameter('pesapal_request_data', $post_xml);
   $iframe_src -> sign_request($signature_method, $consumer, $token);
 
-  $pesapal_iframe = '<iframe src="' . $iframe_src . '" width="100%" height="620px"  scrolling="no" frameBorder="0"><p>Browser unable to load iFrame</p></iframe>';
+  $pesapal_iframe = '<iframe src="' . $iframe_src . '" width="100%" height="620px"  scrolling="no" frameBorder="0"><p>Browser unable to load Pesapal iFrame</p></iframe>';
    
   return $pesapal_iframe;
 }
@@ -86,10 +90,14 @@ function commerce_pesapal_ipn() {
   $transaction_mode = $settings['settings']['mode'];
 
   if ($transaction_mode = 'test') {
+
     $statusrequest_api = 'http://demo.pesapal.com/api/QueryPaymentStatus';
+  
   } 
   elseif ($transaction_mode = 'live') {
+
     $statusrequest_api = 'https://www.pesapal.com/api/QueryPaymentStatus';
+  
   }
 
   // Fetch parameters sent by the PesaPal IPN call. PesaPal will call the URL
@@ -106,12 +114,14 @@ function commerce_pesapal_ipn() {
 
     // Get transaction status
     $signature_method = new OAuthSignatureMethod_HMAC_SHA1();
+    
     $request_status = OAuthRequest::from_consumer_and_token($consumer, $token, 'GET', $statusrequest_api, $params);
     $request_status -> set_parameter('pesapal_merchant_reference', $pesapal_merchant_reference);
     $request_status -> set_parameter('pesapal_transaction_tracking_id', $pesapal_transaction_tracking_id);
     $request_status -> sign_request($signature_method, $consumer, $token);
 
     $ch = curl_init();
+    
     curl_setopt($ch, CURLOPT_URL, $request_status);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_HEADER, 1);
