@@ -1,182 +1,199 @@
 <?php
-/**
- * @file
- * Implements the Pesapal API for Drupal Commerce
- */
- define('PESAPAL_LIVE_URL', 'https://www.pesapal.com/API/PostPesapalDirectOrderV4');
- define('PESAPAL_TEST_URL', 'http://demo.pesapal.com/api/PostPesapalDirectOrderV4');
- define('COMMERCE_PESAPAL_TXN_MODE_LIVE', 'live');
- define('COMMERCE_PESAPAL_TXN_MODE_TEST', 'test');
+  /**
+   * @file
 
-/**
- * Implements hook_payment_method_info()
- *
- * Register the payment method so it is known to Drupal Commerce
- */
-function commerce_pesapal_commerce_payment_method_info() {
-  $payment_methods = array();
-  $payment_methods['commerce_pesapal'] = array(
-    'title' => t("Pesapal"),
-    'display_title' => "Pesapal",
-    'short_title' => 'Pesapal',
-    'description' => 'Online Payments Using Pesapal',
-    'offsite' => TRUE,
-    'offsite_autoredirect' => FALSE,
-    'active' => TRUE,
-    'terminal' => FALSE,
-  );
+   * Implements the Pesapal API for Drupal Commerce
+   */
+   define('PESAPAL_LIVE_URL', 'https://www.pesapal.com/API/PostPesapalDirectOrderV4');
+   define('PESAPAL_TEST_URL', 'http://demo.pesapal.com/api/PostPesapalDirectOrderV4');
+   define('COMMERCE_PESAPAL_TXN_MODE_LIVE', 'live');
+   define('COMMERCE_PESAPAL_TXN_MODE_TEST', 'test');
 
-  return $payment_methods;
-}
+  /**
+   * Implements hook_payment_method_info()
+   *
+   * Register the payment method so it is known to Drupal Commerce
+   */
+  function commerce_pesapal_commerce_payment_method_info() {
+    $payment_methods = array();
 
-/**
- * Implements hook_menu()
- * 
- * Create the page that holds the pesapal iframe and complete order callback
- */
-function commerce_pesapal_menu() {
-  $items = array();
-  //Create the page that holds the Pesapal iframe.
-  $items['pesapal/pay'] = array(
-  'title' => 'Pesapal Payment',
-  'description' => 'Make a payment to Pesapal',
-  'page callback' => 'commerce_pesapal_pay',
-  'file' => 'commerce_pesapal.pages.inc',
-  'type' => MENU_CALLBACK,
-  'access callback' => TRUE,
-  );
-
-  $items['pesapal/complete'] = array(
-    'title' => 'Order complete',
-    'page callback' => 'commerce_pesapal_complete',
-    'access callback' => TRUE,
-    'type' => MENU_CALLBACK,
-    'file' => 'commerce_pesapal.pages.inc',
-  );
-
-  $items['pesapal/ipn'] = array(
-    'title' => 'Order Confirmed',
-    'page callback' => 'commerce_pesapal_ipn',
-    'access callback' => TRUE,
-    'type' => MENU_CALLBACK,
-    'file' => 'commerce_pesapal.pages.inc',
-  );
-
-  return $items;
-}
-
-
-/**
- * Implements CALLBACK_commerce_payment_method_settings_form().
- */
-function commerce_pesapal_settings_form($settings = NULL) {
-  $form = array();
-
-  // Set defaults for first time load.
-  $settings = (array) $settings + array(
-    'consumer_key' => '',
-    'consumer_secret' => '',
-    'mode' => 0,
+    $payment_methods['commerce_pesapal'] = array(
+      'title' => t("Pesapal"),
+      'display_title' => "Pesapal",
+      'short_title' => 'Pesapal',
+      'description' => 'Online Payments Using Pesapal',
+      'offsite' => TRUE,
+      'offsite_autoredirect' => FALSE,
+      'active' => TRUE,
+      'terminal' => FALSE,
     );
-  $form['sign_up'] = array(
-    '#type' => 'markup',
-    '#markup' => '<a href="http://www.pesapal.com/" target="_blank">Sign up</a> for a free Pesapal account.',
-  );
-  $form['consumer_key'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Consumer Key'),
-    '#description' => t('Consumer Key as provided by Pesapal'),
-    '#default_value' => $settings['consumer_key'],
-    '#required' => TRUE,
-  );
-  $form['consumer_secret'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Consumer Secret'),
-    '#description' => t('Consumer Secret as provided by Pesapal'),
-    '#default_value' => $settings['consumer_secret'],
-    '#required' => TRUE,
-  );
-  $form['mode'] = array(
-    '#type' => 'radios',
-    '#title' => t('Transaction mode'),
-    '#description' => t('When testing choose the test option, select live for using the real account (adjust credentials accordingly).'),
-    '#options' => array(
-      COMMERCE_PESAPAL_TXN_MODE_LIVE => t('Live transactions in a live account'),
-      COMMERCE_PESAPAL_TXN_MODE_TEST => t('Test transactions in a test account'),
-    ),
-    '#default_value' => $settings['mode'],
-  );
 
-  return $form;
-}
-
-/**
- * Redirects the user to the hosted payment page.
- */
-function commerce_pesapal_redirect_form($form, &$form_state, $order, $payment_method) {
-  global $base_path, $base_url;
-  $settings = $payment_method['settings'];
-
-  $wrapper = entity_metadata_wrapper('commerce_order', $order);
-  $address = $wrapper->commerce_customer_billing->commerce_customer_address->value();
-
-  $full_name = $address['name_line'];
-  if ($full_name) {
-    $arr_full_name = explode(' ', $full_name);
-    $firstname = $arr_full_name[0];
-    $lastname = $arr_full_name[1];
-  }
-  else {
-    // If the full name field is empty, assume the form is configured for first
-    // name and last name.
-    $firstname = $address['first_name'];
-    $lastname = $address['last_name'];
+    return $payment_methods;
   }
 
-  $amount = $wrapper->commerce_order_total->amount->value() / 100;
-  $currency = $wrapper->commerce_order_total->currency_code->value();
-  
-  //Get the order id.
-  $order_id = $order->order_id;
-  $order_email = $order->mail;
+  /**
+   * Implements hook_menu()
+   * 
+   * Create the page that holds the pesapal iframe and complete order callback
+   */
+  function commerce_pesapal_menu() {
+    $items = array();
 
-  $form['#method'] = 'post';
-  $form['amount'] = array(
-    '#type' => 'hidden',
-    '#value' => $amount ,
-    );
-  $form['order_id'] = array(
-    '#type' => 'hidden',
-    '#value' => $order_id,
-    );
-  $form['email'] = array(
-     '#type' => 'hidden',
-     '#value' => $order_email,
-    );
-  $form['firstname'] = array(
-     '#type' => 'hidden',
-     '#value' => $firstname,
-    );
-  $form['lastname'] = array(
-     '#type' => 'hidden',
-     '#value' => $lastname,
-    );
-  $form['currency'] = array(
-     '#type' => 'hidden',
-     '#value' => $currency,
+    //Create the page that holds the Pesapal iframe.
+    $items['pesapal/pay'] = array(
+    'title' => 'Pesapal Payment',
+    'description' => 'Make a payment to Pesapal',
+    'page callback' => 'commerce_pesapal_pay',
+    'file' => 'commerce_pesapal.pages.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => TRUE,
     );
 
-  $form['#action'] = $base_path . 'pesapal/pay';
-  
-  $form['actions'] = array('#type' => 'actions');
-  
-  $form['actions']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => 'Pay on Pesapal',
-  );
-  
-  return $form;
-}
+    $items['pesapal/complete'] = array(
+      'title' => 'Order complete',
+      'page callback' => 'commerce_pesapal_complete',
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+      'file' => 'commerce_pesapal.pages.inc',
+    );
+
+    $items['pesapal/ipn'] = array(
+      'title' => 'Order Confirmed',
+      'page callback' => 'commerce_pesapal_ipn',
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+      'file' => 'commerce_pesapal.pages.inc',
+    );
+
+    return $items;
+  }
+
+
+  /**
+   * Implements CALLBACK_commerce_payment_method_settings_form().
+   */
+  function commerce_pesapal_settings_form($settings = NULL) {
+    $form = array();
+
+    // Set defaults for first time load.
+    $settings = (array) $settings + array(
+      'consumer_key' => '',
+      'consumer_secret' => '',
+      'mode' => 0,
+    );
+
+    $form['sign_up'] = array(
+      '#type' => 'markup',
+      '#markup' => '<a href="http://www.pesapal.com/" target="_blank">Sign up</a> for a free Pesapal account.',
+    );
+
+    $form['consumer_key'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Consumer Key'),
+      '#description' => t('Consumer Key as provided by Pesapal'),
+      '#default_value' => $settings['consumer_key'],
+      '#required' => TRUE,
+    );
+
+    $form['consumer_secret'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Consumer Secret'),
+      '#description' => t('Consumer Secret as provided by Pesapal'),
+      '#default_value' => $settings['consumer_secret'],
+      '#required' => TRUE,
+    );
+
+    $form['mode'] = array(
+      '#type' => 'radios',
+      '#title' => t('Transaction mode'),
+      '#description' => t('When testing choose the test option, select live for using the real account (adjust credentials accordingly).'),
+      '#options' => array(
+        COMMERCE_PESAPAL_TXN_MODE_LIVE => t('Live transactions in a live account'),
+        COMMERCE_PESAPAL_TXN_MODE_TEST => t('Test transactions in a test account'),
+      ),
+      '#default_value' => $settings['mode'],
+    );
+
+    return $form;
+  }
+
+  /**
+   * Redirects the user to the hosted payment page.
+   */
+  function commerce_pesapal_redirect_form($form, &$form_state, $order, $payment_method) {
+    global $base_path, $base_url;
+
+    $settings = $payment_method['settings'];
+
+    $wrapper = entity_metadata_wrapper('commerce_order', $order);
+    $address = $wrapper->commerce_customer_billing->commerce_customer_address->value();
+
+    $full_name = $address['name_line'];
+
+    if ($full_name) {
+      $arr_full_name = explode(' ', $full_name);
+
+      $firstname = $arr_full_name[0];
+
+      $lastname = $arr_full_name[1];
+    }
+    else {
+      // If the full name field is empty, assume the form is configured for first
+      // name and last name.
+      $firstname = $address['first_name'];
+      $lastname = $address['last_name'];
+    }
+
+    $amount = $wrapper->commerce_order_total->amount->value() / 100;
+    $currency = $wrapper->commerce_order_total->currency_code->value();
+    
+    //Get the order id.
+    $order_id = $order->order_id;
+    $order_email = $order->mail;
+
+    $form['#method'] = 'post';
+
+    $form['amount'] = array(
+      '#type' => 'hidden',
+      '#value' => $amount ,
+    );
+
+    $form['order_id'] = array(
+      '#type' => 'hidden',
+      '#value' => $order_id,
+    );
+
+    $form['email'] = array(
+       '#type' => 'hidden',
+       '#value' => $order_email,
+      );
+
+    $form['firstname'] = array(
+       '#type' => 'hidden',
+       '#value' => $firstname,
+    );
+
+    $form['lastname'] = array(
+       '#type' => 'hidden',
+       '#value' => $lastname,
+    );
+
+    $form['currency'] = array(
+       '#type' => 'hidden',
+       '#value' => $currency,
+    );
+
+    $form['#action'] = $base_path . 'pesapal/pay';
+    
+    $form['actions'] = array('#type' => 'actions');
+    
+    $form['actions']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => 'Pay on Pesapal',
+    );
+    
+    return $form;
+  }
 
 
 
